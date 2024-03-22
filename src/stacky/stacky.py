@@ -797,33 +797,36 @@ def create_gh_pr(b: StackBranch, prefix: str):
     ]
     reviewers = find_reviewers(b)
     issue_id = find_issue_marker(b.name)
+
+    title = ""
     if issue_id:
-        out = run_multiline(
-            CmdArgs(["git", "log", "--pretty=oneline", f"{b.parent.name}..{b.name}"]),
+        title_prefix = f"[${issue_id}]"
+
+    out = run_multiline(
+        CmdArgs(["git", "log", "--pretty=oneline", f"{b.parent.name}..{b.name}"]),
+    )
+    # Just one line (hence 2 elements with the last one being an empty string when we
+    # split on "\"n ?
+    # Then use the title of the commit as the title of the PR
+    if out is not None and len(out.split("\n")) == 2:
+        out = run(
+            CmdArgs(
+                [
+                    "git",
+                    "log",
+                    "--pretty=format:%s",
+                    "-1",
+                    f"{b.name}",
+                ]
+            ),
+            out=False,
         )
-        title = f"[{issue_id}] "
-        # Just one line (hence 2 elements with the last one being an empty string when we
-        # split on "\"n ?
-        # Then use the title of the commit as the title of the PR
-        if out is not None and len(out.split("\n")) == 2:
-            out = run(
-                CmdArgs(
-                    [
-                        "git",
-                        "log",
-                        "--pretty=format:%s",
-                        "-1",
-                        f"{b.name}",
-                    ]
-                ),
-                out=False,
-            )
-            if out is None:
-                out = ""
-            if b.name not in out:
-                title += out
-            else:
-                title = out
+        if out is None:
+            out = ""
+        if issue_id is None or issue_id in out:
+            title = out
+        else:
+            title = f"{title_prefix}{out}"
 
         title = prompt(
             (fmt("? ", color=COLOR_STDOUT, fg="green") + fmt("Title ", color=COLOR_STDOUT, style="bold", fg="white")),
