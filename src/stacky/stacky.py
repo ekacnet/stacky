@@ -139,6 +139,7 @@ class StackyConfig:
             )
 
 
+
 def get_config() -> StackyConfig:
     global CONFIG
     if CONFIG is None:
